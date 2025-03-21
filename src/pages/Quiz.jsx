@@ -1,0 +1,233 @@
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import {
+  Container,
+  Button,
+  Typography,
+  Card,
+  CardContent,
+  CircularProgress,
+} from "@mui/material";
+import axios from "../axios";
+
+const Quiz = () => {
+  const { id } = useParams();
+  const [quiz, setQuiz] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [timeTaken, setTimeTaken] = useState(0);
+  const [started, setStarted] = useState(false);
+  const [intervalId, setIntervalId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    axios
+      .get(`/questionnaires/${id}`)
+      .then((response) => {
+        setQuiz(response.data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching quiz:", error);
+        setLoading(false);
+      });
+  }, [id]);
+
+  useEffect(() => {
+    if (quiz) {
+      const initialAnswers = {};
+      quiz.questions.forEach((question) => {
+        initialAnswers[question._id] =
+          question.type === "multiple_choice" ? [] : "";
+      });
+      setAnswers(initialAnswers);
+    }
+  }, [quiz]);
+
+  useEffect(() => {
+    if (started) {
+      const interval = setInterval(() => setTimeTaken((prev) => prev + 1), 1000);
+      setIntervalId(interval);
+      return () => clearInterval(interval); 
+    }
+  }, [started]);
+
+  const handleStart = () => {
+    setStarted(true);
+  };
+
+  const handleAnswerChange = (questionId, value) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: value,
+    }));
+  };
+
+  const handleMultipleChoiceChange = (currentAnswers, option) => {
+    if (currentAnswers.includes(option)) {
+      return currentAnswers.filter((item) => item !== option); 
+    }
+    return [...currentAnswers, option]; 
+  };
+
+  const validateAnswers = () => {
+    return Object.keys(answers).every(
+      (questionId) =>
+        answers[questionId] !== "" && (Array.isArray(answers[questionId]) ? answers[questionId].length > 0 : true)
+    );
+  };
+
+  const handleSubmit = () => {
+    clearInterval(intervalId);
+    const formattedAnswers = Object.keys(answers).map((questionId) => ({
+      question_id: questionId,
+      answer_text: answers[questionId],
+    }));
+
+    axios
+      .post(`/questionnaires/${id}/submit`, {
+        answers: formattedAnswers,
+        completion_time: timeTaken,
+      })
+      .then(() => {
+        setSubmitted(true);
+      })
+      .catch((error) => {
+        console.error("Error submitting quiz:", error);
+        alert("There was an issue submitting the quiz.");
+      });
+  };
+
+  if (loading)
+    return (
+      <Container sx={{ textAlign: "center", mt: 4 }}>
+        <CircularProgress />
+      </Container>
+    );
+
+  if (!quiz)
+    return (
+      <Typography variant="h6" sx={{ textAlign: "center", mt: 4 }}>
+        Quiz not found
+      </Typography>
+    );
+
+  if (submitted) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
+          Quiz Submitted!
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
+          You completed the quiz in {timeTaken} seconds.
+        </Typography>
+        <Typography variant="h6" sx={{ mb: 3 }}>
+          Your Answers:
+        </Typography>
+        {quiz.questions.map((question) => (
+          <Card key={question._id} sx={{ mb: 2, boxShadow: 3 }}>
+            <CardContent>
+              <Typography variant="h6">{question.question_text}</Typography>
+              <Typography variant="body1">{question.type === "multiple_choice" ? (
+                answers[question._id]?.join(", ")
+              ) : (
+                answers[question._id]
+              )}</Typography>
+            </CardContent>
+          </Card>
+        ))}
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => window.location.href = "/"}
+        >
+          Go to Home
+        </Button>
+      </Container>
+    );
+  }
+
+  return (
+    <Container sx={{ mt: 4 }}>
+      <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
+        {quiz.name}
+      </Typography>
+      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>
+        {quiz.description}
+      </Typography>
+
+      {!started ? (
+        <Button variant="contained" onClick={handleStart}>
+          Start Quiz
+        </Button>
+      ) : (
+        <>
+          <Typography variant="h6" sx={{ mb: 3 }}>
+            Time Taken: {timeTaken} seconds
+          </Typography>
+          {quiz.questions.map((question) => (
+            <Card key={question._id} sx={{ mb: 2, boxShadow: 3 }}>
+              <CardContent>
+                <Typography variant="h6">{question.question_text}</Typography>
+                {question.type === "text" && (
+                  <input
+                    type="text"
+                    value={answers[question._id] || ""}
+                    onChange={(e) =>
+                      handleAnswerChange(question._id, e.target.value)
+                    }
+                  />
+                )}
+                {question.type === "single_choice" &&
+                  question.options.map((option) => (
+                    <label key={option}>
+                      <input
+                        type="radio"
+                        name={question._id}
+                        value={option}
+                        checked={answers[question._id] === option}
+                        onChange={() =>
+                          handleAnswerChange(question._id, option)
+                        }
+                      />
+                      {option}
+                    </label>
+                  ))}
+                {question.type === "multiple_choice" &&
+                  question.options.map((option) => (
+                    <label key={option}>
+                      <input
+                        type="checkbox"
+                        value={option}
+                        checked={answers[question._id]?.includes(option)}
+                        onChange={() =>
+                          handleAnswerChange(
+                            question._id,
+                            handleMultipleChoiceChange(
+                              answers[question._id] || [],
+                              option
+                            )
+                          )
+                        }
+                      />
+                      {option}
+                    </label>
+                  ))}
+              </CardContent>
+            </Card>
+          ))}
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleSubmit}
+            disabled={!validateAnswers()}
+          >
+            Submit Quiz
+          </Button>
+        </>
+      )}
+    </Container>
+  );
+};
+
+export default Quiz;

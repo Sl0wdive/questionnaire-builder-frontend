@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
   Container,
@@ -16,7 +16,6 @@ const Quiz = () => {
   const [answers, setAnswers] = useState({});
   const [timeTaken, setTimeTaken] = useState(0);
   const [started, setStarted] = useState(false);
-  const [intervalId, setIntervalId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
 
@@ -34,51 +33,59 @@ const Quiz = () => {
   }, [id]);
 
   useEffect(() => {
-    if (quiz) {
-      const initialAnswers = {};
-      quiz.questions.forEach((question) => {
-        initialAnswers[question._id] =
-          question.type === "multiple_choice" ? [] : "";
-      });
-      setAnswers(initialAnswers);
+    const savedStartTime = localStorage.getItem(`quizStartTime-${id}`);
+    const savedAnswers = localStorage.getItem(`quizAnswers-${id}`);
+
+    if (savedStartTime) {
+      setStarted(true);
+      setTimeTaken(Math.floor((Date.now() - parseInt(savedStartTime)) / 1000));
     }
-  }, [quiz]);
+    if (savedAnswers) {
+      setAnswers(JSON.parse(savedAnswers));
+    }
+  }, [id]);
+
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     if (started) {
-      const interval = setInterval(() => setTimeTaken((prev) => prev + 1), 1000);
-      setIntervalId(interval);
-      return () => clearInterval(interval); 
+      intervalRef.current = setInterval(() => {
+        setTimeTaken((prev) => prev + 1);
+        localStorage.setItem(`quizTimeTaken-${id}`, timeTaken + 1);
+      }, 1000);
+
+      return () => clearInterval(intervalRef.current);
     }
-  }, [started]);
+  }, [started, timeTaken, id]);
 
   const handleStart = () => {
     setStarted(true);
+    localStorage.setItem(`quizStartTime-${id}`, Date.now());
+    localStorage.setItem(`quizAnswers-${id}`, JSON.stringify(answers));
   };
 
   const handleAnswerChange = (questionId, value) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: value,
-    }));
+    const updatedAnswers = { ...answers, [questionId]: value };
+    setAnswers(updatedAnswers);
+    localStorage.setItem(`quizAnswers-${id}`, JSON.stringify(updatedAnswers));
   };
 
   const handleMultipleChoiceChange = (currentAnswers, option) => {
     if (currentAnswers.includes(option)) {
-      return currentAnswers.filter((item) => item !== option); 
+      return currentAnswers.filter((item) => item !== option);
     }
-    return [...currentAnswers, option]; 
+    return [...currentAnswers, option];
   };
 
   const validateAnswers = () => {
     return Object.keys(answers).every(
       (questionId) =>
-        answers[questionId] !== "" && (Array.isArray(answers[questionId]) ? answers[questionId].length > 0 : true)
+        answers[questionId] !== "" &&
+        (Array.isArray(answers[questionId]) ? answers[questionId].length > 0 : true)
     );
   };
 
   const handleSubmit = () => {
-    clearInterval(intervalId);
     const formattedAnswers = Object.keys(answers).map((questionId) => ({
       question_id: questionId,
       answer_text: answers[questionId],
@@ -91,6 +98,11 @@ const Quiz = () => {
       })
       .then(() => {
         setSubmitted(true);
+        localStorage.removeItem(`quizStartTime-${id}`);
+        localStorage.removeItem(`quizAnswers-${id}`);
+        localStorage.removeItem(`quizTimeTaken-${id}`);
+
+        clearInterval(intervalRef.current);
       })
       .catch((error) => {
         console.error("Error submitting quiz:", error);
@@ -128,19 +140,15 @@ const Quiz = () => {
           <Card key={question._id} sx={{ mb: 2, boxShadow: 3 }}>
             <CardContent>
               <Typography variant="h6">{question.question_text}</Typography>
-              <Typography variant="body1">{question.type === "multiple_choice" ? (
-                answers[question._id]?.join(", ")
-              ) : (
-                answers[question._id]
-              )}</Typography>
+              <Typography variant="body1">
+                {question.type === "multiple_choice"
+                  ? answers[question._id]?.join(", ")
+                  : answers[question._id]}
+              </Typography>
             </CardContent>
           </Card>
         ))}
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => window.location.href = "/"}
-        >
+        <Button variant="contained" color="primary" onClick={() => window.location.href = "/"}>
           Go to Home
         </Button>
       </Container>
@@ -173,9 +181,7 @@ const Quiz = () => {
                   <input
                     type="text"
                     value={answers[question._id] || ""}
-                    onChange={(e) =>
-                      handleAnswerChange(question._id, e.target.value)
-                    }
+                    onChange={(e) => handleAnswerChange(question._id, e.target.value)}
                   />
                 )}
                 {question.type === "single_choice" &&
@@ -186,9 +192,7 @@ const Quiz = () => {
                         name={question._id}
                         value={option}
                         checked={answers[question._id] === option}
-                        onChange={() =>
-                          handleAnswerChange(question._id, option)
-                        }
+                        onChange={() => handleAnswerChange(question._id, option)}
                       />
                       {option}
                     </label>
@@ -203,10 +207,7 @@ const Quiz = () => {
                         onChange={() =>
                           handleAnswerChange(
                             question._id,
-                            handleMultipleChoiceChange(
-                              answers[question._id] || [],
-                              option
-                            )
+                            handleMultipleChoiceChange(answers[question._id] || [], option)
                           )
                         }
                       />
@@ -216,12 +217,7 @@ const Quiz = () => {
               </CardContent>
             </Card>
           ))}
-          <Button
-            variant="contained"
-            color="success"
-            onClick={handleSubmit}
-            disabled={!validateAnswers()}
-          >
+          <Button variant="contained" color="success" onClick={handleSubmit} disabled={!validateAnswers()}>
             Submit Quiz
           </Button>
         </>

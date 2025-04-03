@@ -19,7 +19,7 @@ function Header() {
     <AppBar position="static" sx={{ backgroundColor: 'primary.main', padding: 1 }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
         <Typography variant="h6" component={Link} to="/" sx={{ textDecoration: 'none', color: 'white' }}>
-          Questionnaire Builder
+          Quebi
         </Typography>
 
         <Box>

@@ -53,7 +53,7 @@ The **Questionnaire Builder App** is a web application that allows users to crea
 - Non-authenticated users **cannot** perform these actions.
 
 ## Technologies Used
-- **Frontend**: React, Vite, Material UI, Tailwind CSS
+- **Frontend**: React, Vite, Material UI
 - **Backend**: Node.js, Express, MongoDB
 - **Hosting**: Railway, Vercel
 

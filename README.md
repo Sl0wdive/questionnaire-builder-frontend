@@ -41,8 +41,6 @@ The **Questionnaire Builder App** is a web application that allows users to crea
     - Number of completions
 - **Interactive Questionnaire Page**:
   - Saves intermediate completion state so users can continue after a page refresh.
-
-### ❌ Not Yet Implemented
 - **Drag and Drop Functionality** in the Questionnaire Builder Page for reordering questions/answers.
 
 ### 🔒 User Authorization System

@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import axios from '../axios';
 import { Button, TextField, MenuItem, Select, InputLabel, FormControl, Box, Grid, RadioGroup, Radio, FormControlLabel, Checkbox, FormGroup } from '@mui/material';
 import { Link, useNavigate } from "react-router-dom";
-
+import OptionListDnd from '../components/OptionListDnd';
+import QuestionListDnd from '../components/QuestionListDnd';
+import { v4 as uuidv4 } from 'uuid';
 
 const QuestionnaireBuilder = () => {
   const [questionnaireName, setQuestionnaireName] = useState('');
   const [description, setDescription] = useState('');
   const [questions, setQuestions] = useState([]);
+  const [optionInput, setOptionInput] = useState('');
   const [newQuestion, setNewQuestion] = useState({
     question_text: '',
     type: 'text',
@@ -24,7 +27,18 @@ const QuestionnaireBuilder = () => {
   }, [navigate]);
 
   const handleAddQuestion = () => {
-    setQuestions([...questions, newQuestion]);
+    if (!newQuestion.question_text.trim()) {
+      alert("Please enter the question text.");
+      return;
+    }
+
+    if ((newQuestion.type === 'single_choice' || newQuestion.type === 'multiple_choice') && newQuestion.options.length === 0) {
+      alert("Please provide at least one option.");
+      return;
+    }
+
+    const questionWithId = { ...newQuestion, id: uuidv4() };
+    setQuestions([...questions, questionWithId]);
     setNewQuestion({
       question_text: '',
       type: 'text',
@@ -34,10 +48,21 @@ const QuestionnaireBuilder = () => {
   };
 
   const handleDeleteQuestion = (index) => {
+    alert("hi0");
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
   const handleSubmitQuestionnaire = async () => {
+    if (!questionnaireName.trim()) {
+      alert("Please enter a name for the questionnaire.");
+      return;
+    }
+
+    if (!questions || questions.length === 0) {
+      alert("Please add at least one question before submitting the questionnaire.");
+      return;
+    }
+
     try {
       const response = await axios.post('/questionnaires', {
         name: questionnaireName,
@@ -69,38 +94,36 @@ const QuestionnaireBuilder = () => {
     }
   };
 
+  const handleDeleteOption = (index) => {
+    const updatedOptions = [...newQuestion.options];
+    updatedOptions.splice(index, 1);
+    setNewQuestion({
+      ...newQuestion,
+      options: updatedOptions,
+    });
+  };
+
   const renderOptions = () => {
-    if (newQuestion.type === 'single_choice' || newQuestion.type === 'multiple_choice') {
+    if (['single_choice', 'multiple_choice'].includes(newQuestion.type)) {
       return (
         <Box sx={{ mb: 2 }}>
           <h4>Options</h4>
-          {newQuestion.options.map((option, index) => (
-            <div key={index}>
-              {newQuestion.type === 'single_choice' ? (
-                <FormControlLabel
-                  control={
-                    <Radio
-                      checked={newQuestion.selectedOptions.includes(option)}
-                      onChange={(e) => handleOptionChange(e, option)}
-                      value={option}
-                    />
-                  }
-                  label={option}
-                />
-              ) : (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={newQuestion.selectedOptions.includes(option)}
-                      onChange={(e) => handleOptionChange(e, option)}
-                      value={option}
-                    />
-                  }
-                  label={option}
-                />
-              )}
-            </div>
-          ))}
+          {newQuestion.options.map((option, index) => {
+            const isSelected = newQuestion.selectedOptions.includes(option);
+            const controlProps = {
+              checked: isSelected,
+              onChange: (e) => handleOptionChange(e, option),
+              value: option,
+            };
+
+            return (
+              <FormControlLabel
+                key={index}
+                control={newQuestion.type === 'single_choice' ? <Radio {...controlProps} /> : <Checkbox {...controlProps} />}
+                label={option}
+              />
+            );
+          })}
         </Box>
       );
     }
@@ -149,43 +172,26 @@ const QuestionnaireBuilder = () => {
         </Select>
       </FormControl>
 
-      {newQuestion.type === 'single_choice' || newQuestion.type === 'multiple_choice' ? (
-        <TextField
-          label="Options (comma separated)"
-          fullWidth
-          value={newQuestion.options.join(', ')}
-          onChange={(e) => setNewQuestion({ ...newQuestion, options: e.target.value.split(', ') })}
-          sx={{ mb: 2 }}
+      {(newQuestion.type === 'single_choice' || newQuestion.type === 'multiple_choice') && (
+        <OptionListDnd
+          options={newQuestion.options}
+          setOptions={(newOpts) =>
+            setNewQuestion({ ...newQuestion, options: newOpts })
+          }
+          handleDeleteOption={handleDeleteOption}
         />
-      ) : null}
-
-      {renderOptions()}
+      )}
 
       <Button onClick={handleAddQuestion} variant="contained" color="primary" sx={{ mb: 3 }}>
         Add Question
       </Button>
 
-      <h4>Current Questions</h4>
-      <Grid container spacing={2}>
-        {questions.map((question, index) => (
-          <Grid item xs={12} sm={6} key={index}>
-            <Box sx={{ padding: 2, border: '1px solid #ddd', borderRadius: 2 }}>
-              <h5>{question.question_text}</h5>
-              <p>Type: {question.type}</p>
-              {question.type === 'single_choice' || question.type === 'multiple_choice' ? (
-                <p>Options: {question.options.join(', ')}</p>
-              ) : null}
-              <Button
-                onClick={() => handleDeleteQuestion(index)}
-                color="error"
-                variant="outlined"
-              >
-                Delete
-              </Button>
-            </Box>
-          </Grid>
-        ))}
-      </Grid>
+      <h4>Current Questions3івфівіф</h4>
+      <QuestionListDnd
+        questions={questions}
+        setQuestions={setQuestions}
+        handleDeleteQuestion={handleDeleteQuestion}
+      />
 
       <Button onClick={handleSubmitQuestionnaire} variant="contained" color="primary" sx={{ mt: 3 }}>
         Submit Questionnaire

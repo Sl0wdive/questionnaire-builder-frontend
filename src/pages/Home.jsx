@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, Typography, Grid, Card, CardContent, CircularProgress, Button, Select, MenuItem } from "@mui/material";
+import { Container, Typography, Grid, Card, CardContent, CircularProgress, Button, Select, Box, MenuItem } from "@mui/material";
 import axios from "../axios";
 import { useNavigate } from "react-router-dom";
 
@@ -23,7 +23,7 @@ const Home = () => {
         sortOptions = { questionsCount: 1 };
         break;
       case "completions":
-        sortOptions = { completions: -1 };
+        sortOptions = { completions: 1 };
         break;
       default:
         sortOptions = { name: 1 };
@@ -132,7 +132,9 @@ const Home = () => {
       </Select>
 
       {loading && page === 1 ? (
-        <CircularProgress />
+        <Box display="flex" justifyContent="center" mt={2}>
+          <CircularProgress />
+        </Box>
       ) : (
         <Grid container spacing={3} justifyContent="center">
           {quizzes.length > 0 ? (

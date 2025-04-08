@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../axios';
-import { Button, TextField, MenuItem, Select, InputLabel, FormControl, Box, Grid, RadioGroup, Radio, FormControlLabel, Checkbox, FormGroup } from '@mui/material';
-import { Link, useNavigate } from "react-router-dom";
+import { Button, TextField, MenuItem, Select, InputLabel, FormControl, Box, Radio, FormControlLabel, Checkbox } from '@mui/material';
+import { Link, useNavigate, useParams } from "react-router-dom";
 import OptionListDnd from '../components/OptionListDnd';
 import QuestionListDnd from '../components/QuestionListDnd';
 import { v4 as uuidv4 } from 'uuid';
 
 const QuestionnaireBuilder = () => {
+  const { id } = useParams();
   const [questionnaireName, setQuestionnaireName] = useState('');
   const [description, setDescription] = useState('');
   const [questions, setQuestions] = useState([]);
-  const [optionInput, setOptionInput] = useState('');
   const [newQuestion, setNewQuestion] = useState({
     question_text: '',
     type: 'text',
@@ -19,12 +19,36 @@ const QuestionnaireBuilder = () => {
   });
   const navigate = useNavigate();
 
+  const isEditing = Boolean(id);
+
   useEffect(() => {
-    const token = window.localStorage.getItem('token');
+    const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
+      return;
     }
-  }, [navigate]);
+
+    if (id) {
+      axios.get(`/questionnaires/${id}`)
+        .then((response) => {
+          setQuestionnaireName(response.data.name);
+          setDescription(response.data.description);
+          setQuestions(response.data.questions);
+        })
+        .catch((error) => console.error("Error fetching questionnaire:", error));
+    } else {
+      setQuestionnaireName('');
+      setDescription('');
+      setQuestions([]);
+      setNewQuestion({
+        question_text: '',
+        type: 'text',
+        options: [],
+        selectedOptions: [],
+      });
+    }
+  }, [id, navigate]);
+
 
   const handleAddQuestion = () => {
     if (!newQuestion.question_text.trim()) {
@@ -48,7 +72,6 @@ const QuestionnaireBuilder = () => {
   };
 
   const handleDeleteQuestion = (index) => {
-    alert("hi0");
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
@@ -64,12 +87,19 @@ const QuestionnaireBuilder = () => {
     }
 
     try {
-      const response = await axios.post('/questionnaires', {
-        name: questionnaireName,
-        description,
-        questions,
-      });
-      alert('Questionnaire created successfully!');
+      const response = isEditing
+        ? await axios.patch(`/questionnaires/${id}`, {
+          name: questionnaireName,
+          description,
+          questions,
+        })
+        : await axios.post(`/questionnaires`, {
+          name: questionnaireName,
+          description,
+          questions,
+        });
+
+      alert(`${isEditing ? 'Questionnaire updated' : 'Questionnaire created'} successfully!`);
       navigate(`/`);
     } catch (error) {
       console.error("Error submitting questionnaire:", error);
@@ -186,7 +216,7 @@ const QuestionnaireBuilder = () => {
         Add Question
       </Button>
 
-      <h4>Current Questions3івфівіф</h4>
+      <h4>Current Questions</h4>
       <QuestionListDnd
         questions={questions}
         setQuestions={setQuestions}
@@ -194,7 +224,7 @@ const QuestionnaireBuilder = () => {
       />
 
       <Button onClick={handleSubmitQuestionnaire} variant="contained" color="primary" sx={{ mt: 3 }}>
-        Submit Questionnaire
+        Save
       </Button>
     </Box>
   );

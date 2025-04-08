@@ -5,7 +5,6 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import QuizPage from "./pages/Quiz";
 import Builder from "./pages/Builder";
-import Editor from "./pages/Editor";
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMe, SelectIsAuth } from './redux/slices/auth';
 import React from 'react';
@@ -27,7 +26,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/quiz/:id" element={<QuizPage />} />
         <Route path="/builder" element={<Builder/>} />
-        <Route path="/edit-quiz/:id" element={<Editor />} />
+        <Route path="/edit-quiz/:id" element={<Builder />} />
       </Routes>
     </div>
   );

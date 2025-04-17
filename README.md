@@ -7,10 +7,9 @@ The **Questionnaire Builder App** is a web application that allows users to crea
 
 ## Accomplished Features
 
-### ✅ Base Level
 - **Questionnaire Catalog Page**:
   - Displays a paginated list of available questionnaires.
-  - Each questionnaire card consists of:
+  - Each questionnaire card consists of
     - Questionnaire name
     - Description
     - Number of questions
@@ -32,16 +31,18 @@ The **Questionnaire Builder App** is a web application that allows users to crea
   - Responses are stored in the database.
   - Accessible via the "Run" action.
 
-### ✅ Middle Level
-- **Everything from the Base Level**.
 - **Questionnaire Catalog Page**:
   - Ability to sort questionnaires by:
     - Name
     - Number of questions
     - Number of completions
+  
 - **Interactive Questionnaire Page**:
   - Saves intermediate completion state so users can continue after a page refresh.
+
 - **Drag and Drop Functionality** in the Questionnaire Builder Page for reordering questions/answers.
+
+- **Infinite Scroll Pagination** in the Questionnaire Catalog Page using IntersectionObserver to automatically load more questionnaires as users scroll down, providing a smooth and dynamic browsing experience.
 
 ### 🔒 User Authorization System
 - Only **authenticated users** can:

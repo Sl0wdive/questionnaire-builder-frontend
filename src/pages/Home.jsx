@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Container, Typography, Grid, Card, CardContent, CircularProgress, Button, Select, Box, MenuItem } from "@mui/material";
 import axios from "../axios";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +10,24 @@ const Home = () => {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("name");
   const navigate = useNavigate();
+
+  const observer = useRef();
+  const lastQuizRef = useCallback(node => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+    console.log(node)
+  }, [loading, hasMore]);
+
+  useEffect(() => {
+    setPage(1);
+    setQuizzes([]);
+  }, [sortBy]);
 
   useEffect(() => {
     setLoading(true);
@@ -30,7 +48,7 @@ const Home = () => {
         break;
     }
 
-    axios.get(`/questionnaires?sortBy=${sortBy}`)
+    axios.get(`/questionnaires?sortBy=${sortBy}&page=${page}`)
       .then(async (response) => {
         if (response.data && Array.isArray(response.data)) {
           const questionnaires = response.data;
@@ -48,7 +66,7 @@ const Home = () => {
             })
           );
 
-          setQuizzes(updatedQuizzes);
+          setQuizzes(prev => page === 1 ? updatedQuizzes : [...prev, ...updatedQuizzes]);
           setHasMore(updatedQuizzes.length > 0);
         } else {
           setHasMore(false);
@@ -59,7 +77,7 @@ const Home = () => {
         console.error("Error fetching quizzes:", error);
         setLoading(false);
       });
-  }, [sortBy]);
+  }, [sortBy, page]);
 
   const isAuthenticated = () => {
     const token = localStorage.getItem("token");
@@ -94,31 +112,10 @@ const Home = () => {
     navigate(`/edit-quiz/${quizId}`);
   };
 
-  const handleScroll = (event) => {
-    const bottom = event.target.scrollHeight === event.target.scrollTop + event.target.clientHeight;
-    if (bottom && hasMore && !loading) {
-      setPage((prevPage) => prevPage + 1);
-      setLoading(true);
-
-      axios.get(`/questionnaires?page=${page + 1}`)
-        .then(response => {
-          setQuizzes(prevQuizzes => [
-            ...prevQuizzes,
-            ...response.data
-          ]);
-          setLoading(false);
-        })
-        .catch(error => {
-          console.error("Error fetching more questionaires:", error);
-          setLoading(false);
-        });
-    }
-  };
-
   return (
-    <Container sx={{ textAlign: "center", mt: 4 }} onScroll={handleScroll}>
+    <Container sx={{ textAlign: "center", mt: 4 }}>
       <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold" }}>
-        Questionaire Catalog
+        Public Questionaire Catalog
       </Typography>
 
       <Select
@@ -138,31 +135,43 @@ const Home = () => {
       ) : (
         <Grid container spacing={3} justifyContent="center">
           {quizzes.length > 0 ? (
-            quizzes.map((quiz) => (
-              <Grid item xs={12} sm={6} md={4} key={quiz._id}>
-                <Card sx={{ boxShadow: 3, transition: "0.3s", "&:hover": { boxShadow: 6 } }}>
-                  <CardContent>
-                    <Typography variant="h6">{quiz.name}</Typography>
-                    <Typography color="text.secondary">{quiz.description}</Typography>
-                    <Typography color="primary" sx={{ mt: 1 }}>Questions: {quiz.questionsCount}</Typography>
-                    <Typography color="primary" sx={{ mt: 1 }}>
-                      Completions: {quiz.completions ?? 0}
-                    </Typography>
-                    <Grid container spacing={2} sx={{ mt: 2 }}>
-                      <Grid item>
-                        <Button variant="outlined" onClick={() => handleEdit(quiz._id)}>Edit</Button>
+            quizzes.map((quiz, index) => {
+              const isLastQuiz = index === quizzes.length - 1;
+              return (
+                <Grid
+                  ref={isLastQuiz ? lastQuizRef : null}
+                  item
+                  xs={12}
+                  sm={6}
+                  md={4}
+                  key={quiz._id}
+                >
+                  <Card sx={{ boxShadow: 3, transition: "0.3s", "&:hover": { boxShadow: 6 } }}>
+                    <CardContent>
+                      <Typography variant="h6">{quiz.name}</Typography>
+                      <Typography color="text.secondary">{quiz.description}</Typography>
+                      <Typography color="primary" sx={{ mt: 1 }}>
+                        Questions: {quiz.questionsCount}
+                      </Typography>
+                      <Typography color="primary" sx={{ mt: 1 }}>
+                        Completions: {quiz.completions ?? 0}
+                      </Typography>
+                      <Grid container spacing={2} sx={{ mt: 2 }}>
+                        <Grid item>
+                          <Button variant="outlined" onClick={() => handleEdit(quiz._id)}>Edit</Button>
+                        </Grid>
+                        <Grid item>
+                          <Button variant="outlined" color="primary" onClick={() => navigate(`/quiz/${quiz._id}`)}>Run</Button>
+                        </Grid>
+                        <Grid item>
+                          <Button variant="outlined" color="error" onClick={() => handleDelete(quiz._id)}>Delete</Button>
+                        </Grid>
                       </Grid>
-                      <Grid item>
-                        <Button variant="outlined" color="primary" onClick={() => navigate(`/quiz/${quiz._id}`)}>Run</Button>
-                      </Grid>
-                      <Grid item>
-                        <Button variant="outlined" color="error" onClick={() => handleDelete(quiz._id)}>Delete</Button>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })
           ) : (
             <Typography variant="h6" color="text.secondary" sx={{ mt: 4 }}>
               No quizzes available

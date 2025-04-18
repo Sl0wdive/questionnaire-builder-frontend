@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Container, Typography, Grid, Card, CardContent, CircularProgress, Button, Select, Box, MenuItem } from "@mui/material";
+import { Container, Typography, Card, CardContent, CircularProgress, Button, Select, Box, MenuItem } from "@mui/material";
+import Grid from '@mui/material/Grid';
 import axios from "../axios";
 import { useNavigate } from "react-router-dom";
+import QuestionnaireCard from "../components/QuestionnaireCard";
 
 const Home = () => {
   const [quizzes, setQuizzes] = useState([]);
@@ -21,7 +23,6 @@ const Home = () => {
       }
     });
     if (node) observer.current.observe(node);
-    console.log(node)
   }, [loading, hasMore]);
 
   useEffect(() => {
@@ -146,29 +147,11 @@ const Home = () => {
                   md={4}
                   key={quiz._id}
                 >
-                  <Card sx={{ boxShadow: 3, transition: "0.3s", "&:hover": { boxShadow: 6 } }}>
-                    <CardContent>
-                      <Typography variant="h6">{quiz.name}</Typography>
-                      <Typography color="text.secondary">{quiz.description}</Typography>
-                      <Typography color="primary" sx={{ mt: 1 }}>
-                        Questions: {quiz.questionsCount}
-                      </Typography>
-                      <Typography color="primary" sx={{ mt: 1 }}>
-                        Completions: {quiz.completions ?? 0}
-                      </Typography>
-                      <Grid container spacing={2} sx={{ mt: 2 }}>
-                        <Grid item>
-                          <Button variant="outlined" onClick={() => handleEdit(quiz._id)}>Edit</Button>
-                        </Grid>
-                        <Grid item>
-                          <Button variant="outlined" color="primary" onClick={() => navigate(`/quiz/${quiz._id}`)}>Run</Button>
-                        </Grid>
-                        <Grid item>
-                          <Button variant="outlined" color="error" onClick={() => handleDelete(quiz._id)}>Delete</Button>
-                        </Grid>
-                      </Grid>
-                    </CardContent>
-                  </Card>
+                  <QuestionnaireCard
+                    quiz={quiz}
+                    onDelete={handleDelete}
+                    onEdit={handleEdit}
+                  />
                 </Grid>
               );
             })

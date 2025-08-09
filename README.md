@@ -54,7 +54,7 @@ The **Questionnaire Builder App** is a web application that allows users to crea
 ## Technologies Used
 - **Frontend**: React, Vite, Material UI
 - **Backend**: Node.js, Express, MongoDB
-- **Hosting**: Railway, Vercel
+- **Hosting**: Render, Vercel
 
 
 

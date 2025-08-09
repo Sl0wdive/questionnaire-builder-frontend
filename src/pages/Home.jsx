@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Container, Typography, Card, CardContent, CircularProgress, Button, Select, Box, MenuItem } from "@mui/material";
-import Grid from '@mui/material/Grid';
+import Grid from '@mui/material/Grid2';
 import axios from "../axios";
 import { useNavigate } from "react-router-dom";
 import QuestionnaireCard from "../components/QuestionnaireCard";
+import { useSelector } from 'react-redux';
 
 const Home = () => {
+  const userData = useSelector(state => state.auth.data);
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -134,23 +136,21 @@ const Home = () => {
           <CircularProgress />
         </Box>
       ) : (
-        <Grid container spacing={3} justifyContent="center">
+        <Grid container spacing={3} size="grow">
           {quizzes.length > 0 ? (
             quizzes.map((quiz, index) => {
               const isLastQuiz = index === quizzes.length - 1;
               return (
                 <Grid
                   ref={isLastQuiz ? lastQuizRef : null}
-                  item
-                  xs={12}
-                  sm={6}
-                  md={4}
                   key={quiz._id}
                 >
                   <QuestionnaireCard
+                    key={quiz._id}
                     quiz={quiz}
                     onDelete={handleDelete}
                     onEdit={handleEdit}
+                    isEditable={userData?._id === quiz.creator?._id}
                   />
                 </Grid>
               );

@@ -136,12 +136,19 @@ const Home = () => {
           <CircularProgress />
         </Box>
       ) : (
-        <Grid container spacing={3} size="grow">
+        <Grid container spacing={3} size="stretch">
           {quizzes.length > 0 ? (
             quizzes.map((quiz, index) => {
               const isLastQuiz = index === quizzes.length - 1;
               return (
                 <Grid
+                  item
+                  xs={12} sm={6} md={4}
+                  sx={{
+                    display: "flex",
+                    width: "100%",
+                    maxWidth: 350
+                  }}
                   ref={isLastQuiz ? lastQuizRef : null}
                   key={quiz._id}
                 >
